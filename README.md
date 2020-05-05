@@ -1,5 +1,5 @@
 ## A Transformer-based Approach for Source Code Summarization
-Official implementation of our ACL 2020 paper
+Official implementation of our ACL 2020 paper on Source Code Summarization. [[arxiv](https://arxiv.org/abs/2005.00653)]
 
 ### Installing C2NL
 
@@ -86,7 +86,7 @@ We borrowed and modified code from [DrQA](https://github.com/facebookresearch/Dr
 ### Citation
 
 ```
-@inproceedings{zhang2018graph,
+@inproceedings{ahmad2020summarization,
  author = {Ahmad, Wasi Uddin and Chakraborty, Saikat and Ray, Baishakhi and Chang, Kai-Wei},
  booktitle = {Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics (ACL)},
  title = {A Transformer-based Approach for Source Code Summarization},
