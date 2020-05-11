@@ -12,14 +12,16 @@ MODEL_DIR=${SRC_DIR}/tmp
 
 make_dir $MODEL_DIR
 
+DATASET=python
+CODE_EXTENSION=original_subtoken
+JAVADOC_EXTENSION=original
+
+
 function train () {
 
 echo "============TRAINING============"
 
 RGPU=$1
-DATASET=python-method
-CODE_EXTENSION=original_subtoken
-JAVADOC_EXTENSION=original
 MODEL_NAME=$2
 
 PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/train.py \
@@ -57,18 +59,16 @@ PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/
 --d_k 64 \
 --d_v 64 \
 --d_ff 2048 \
---src_pos_emb True \
+--src_pos_emb False \
 --tgt_pos_emb True \
---max_relative_pos 0 \
+--max_relative_pos 32 \
 --use_neg_dist True \
 --nlayers 6 \
---fp16 False \
 --trans_drop 0.2 \
 --dropout_emb 0.2 \
 --dropout 0.2 \
 --copy_attn True \
 --early_stop 20 \
---gradient_accumulation_steps 1 \
 --warmup_steps 0 \
 --optimizer adam \
 --learning_rate 0.0001 \
@@ -84,9 +84,6 @@ function test () {
 echo "============TESTING============"
 
 RGPU=$1
-DATASET=python-method
-CODE_TAG_TYPE=original_subtoken
-JAVADOC_EXTENSION=original
 MODEL_NAME=$2
 
 PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/train.py \
@@ -96,16 +93,15 @@ PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/
 --data_dir ${DATA_DIR}/ \
 --model_dir $MODEL_DIR \
 --model_name $MODEL_NAME \
---dev_src test/code.${CODE_TAG_TYPE} \
---dev_src_tag test/code.${CODE_TAG_TYPE}_tag \
+--dev_src test/code.${CODE_EXTENSION} \
+--dev_src_tag test/code.${CODE_EXTENSION}_tag \
 --dev_tgt test/javadoc.${JAVADOC_EXTENSION} \
---code_tag_type $CODE_TAG_TYPE \
+--code_tag_type $CODE_EXTENSION \
 --use_code_type False \
 --uncase True \
 --max_src_len 400 \
 --max_tgt_len 30 \
 --max_examples -1 \
---replace_unk \
 --test_batch_size 64
 
 }
@@ -115,9 +111,6 @@ function beam_search () {
 echo "============Beam Search TESTING============"
 
 RGPU=$1
-DATASET=python-method
-CODE_TAG_TYPE=original_subtoken
-JAVADOC_EXTENSION=original
 MODEL_NAME=$2
 
 PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/test.py \
@@ -126,10 +119,10 @@ PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/
 --data_dir ${DATA_DIR}/ \
 --model_dir $MODEL_DIR \
 --model_name $MODEL_NAME \
---dev_src test/code.${CODE_TAG_TYPE} \
---dev_src_tag test/code.${CODE_TAG_TYPE}_tag \
+--dev_src test/code.${CODE_EXTENSION} \
+--dev_src_tag test/code.${CODE_EXTENSION}_tag \
 --dev_tgt test/javadoc.${JAVADOC_EXTENSION} \
---code_tag_type $CODE_TAG_TYPE \
+--code_tag_type $CODE_EXTENSION \
 --use_code_type False \
 --uncase True \
 --max_examples -1 \

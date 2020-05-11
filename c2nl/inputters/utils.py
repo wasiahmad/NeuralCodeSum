@@ -102,8 +102,7 @@ def load_data(args, filenames, max_examples=-1, dataset_name='deepcom',
     examples = []
     for src, src_tag, tgt in tqdm(zip(sources, source_tags, targets),
                                   total=len(sources)):
-        if dataset_name in ['deepcom', 'methodcom', 'tlcodesum',
-                            'python-method-docstring']:
+        if dataset_name in ['java', 'python']:
             _ex = process_examples(LANG_ID_MAP[DATA_LANG_MAP[dataset_name]],
                                    src,
                                    src_tag,
@@ -146,17 +145,8 @@ def load_words(args, examples, fields, dict_size=None):
         words = []
         for w in iterable:
             w = Vocabulary.normalize(w)
-            if valid_words and w not in valid_words:
-                continue
             words.append(w)
         word_count.update(words)
-
-    if args.restrict_vocab and args.embedding_file:
-        logger.info('Restricting to words in %s' % args.embedding_file)
-        valid_words = index_embedding_words(args.embedding_file)
-        logger.info('Num words in set = %d' % len(valid_words))
-    else:
-        valid_words = None
 
     word_count = Counter()
     for ex in tqdm(examples):

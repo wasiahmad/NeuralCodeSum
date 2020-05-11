@@ -7,7 +7,7 @@ import torch
 import torch.optim as optim
 
 from torch.nn.utils import clip_grad_norm_
-from c2nl.config import override_model_args, add_new_model_args
+from c2nl.config import override_model_args
 from c2nl.models.seq2seq import Seq2seq
 from c2nl.models.transformer import Transformer
 from c2nl.utils.copy_utils import collapse_copy_scores, replace_unknown, \
@@ -29,7 +29,6 @@ class Code2NaturalLanguage(object):
     def __init__(self, args, src_dict, tgt_dict, state_dict=None):
         # Book-keeping.
         self.args = args
-        self.alpha = 1.0 / args.max_iterations
         self.src_dict = src_dict
         self.args.src_vocab_size = len(src_dict)
         self.tgt_dict = tgt_dict
@@ -54,78 +53,6 @@ class Code2NaturalLanguage(object):
                 self.network.register_buffer('fixed_embedding', fixed_embedding)
             else:
                 self.network.load_state_dict(state_dict)
-
-    @staticmethod
-    def load_embeddings(word_dict, words, embedding_file, emb_layer):
-        """Load pretrained embeddings for a given list of words, if they exist.
-        #TODO: update args
-        Args:
-            words: iterable of tokens. Only those that are indexed in the
-              dictionary are kept.
-            embedding_file: path to text file of embeddings, space separated.
-        """
-        words = {w for w in words if w in word_dict}
-        logger.info('Loading pre-trained embeddings for %d words from %s' %
-                    (len(words), embedding_file))
-
-        # When normalized, some words are duplicated. (Average the embeddings).
-        vec_counts, embedding = {}, {}
-        with open(embedding_file) as f:
-            # Skip first line if of form count/dim.
-            line = f.readline().rstrip().split(' ')
-            if len(line) != 2:
-                f.seek(0)
-
-            duplicates = set()
-            for line in tqdm(f, total=count_file_lines(embedding_file)):
-                parsed = line.rstrip().split(' ')
-                assert (len(parsed) == emb_layer.word_vec_size + 1)
-                w = word_dict.normalize(parsed[0])
-                if w in words:
-                    vec = torch.Tensor([float(i) for i in parsed[1:]])
-                    if w not in vec_counts:
-                        vec_counts[w] = 1
-                        embedding[w] = vec
-                    else:
-                        duplicates.add(w)
-                        vec_counts[w] = vec_counts[w] + 1
-                        embedding[w].add_(vec)
-
-            if len(duplicates) > 0:
-                logging.warning(
-                    'WARN: Duplicate embedding found for %s' % ', '.join(duplicates)
-                )
-
-        for w, c in vec_counts.items():
-            embedding[w].div_(c)
-
-        emb_layer.init_word_vectors(word_dict, embedding)
-        logger.info('Loaded %d embeddings (%.2f%%)' %
-                    (len(vec_counts), 100 * len(vec_counts) / len(words)))
-
-    def load_src_embeddings(self, words, embedding_file):
-        """Load pretrained embeddings for a given list of words, if they exist.
-        Args:
-            words: iterable of tokens. Only those that are indexed in the
-              dictionary are kept.
-            embedding_file: path to text file of embeddings, space separated.
-        """
-        self.load_embeddings(self.src_dict,
-                             words,
-                             embedding_file,
-                             self.network.embedder.src_word_embeddings.word_embeddings.embedding)
-
-    def load_tgt_embeddings(self, words, embedding_file):
-        """Load pretrained embeddings for a given list of words, if they exist.
-        Args:
-            words: iterable of tokens. Only those that are indexed in the
-              dictionary are kept.
-            embedding_file: path to text file of embeddings, space separated.
-        """
-        self.load_embeddings(self.tgt_dict,
-                             words,
-                             embedding_file,
-                             self.network.embedder.tgt_word_embeddings.word_embeddings.embedding)
 
     def init_optimizer(self, state_dict=None, use_gpu=True):
         """Initialize an optimizer for the free parameters of the network.
@@ -253,9 +180,6 @@ class Code2NaturalLanguage(object):
         loss_per_token = loss_per_token.item()
         loss_per_token = 10 if loss_per_token > 10 else loss_per_token
         perplexity = math.exp(loss_per_token)
-
-        if self.args.gradient_accumulation_steps > 1:
-            loss = loss / self.args.gradient_accumulation_steps
 
         loss.backward()
 
@@ -407,7 +331,6 @@ class Code2NaturalLanguage(object):
         args = saved_params['args']
         if new_args:
             args = override_model_args(args, new_args)
-            args = add_new_model_args(args, new_args)
         return Code2NaturalLanguage(args, src_dict, tgt_dict, state_dict)
 
     @staticmethod

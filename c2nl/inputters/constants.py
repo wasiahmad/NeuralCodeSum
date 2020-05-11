@@ -37,8 +37,8 @@ AST_TYPE_MAP = {
 }
 
 DATA_LANG_MAP = {
-    'tlcodesum': 'java',
-    'python-method': 'python'
+    'java': 'java',
+    'python': 'python'
 }
 
 LANG_ID_MAP = {

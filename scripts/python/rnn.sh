@@ -12,14 +12,16 @@ MODEL_DIR=${SRC_DIR}/tmp
 
 make_dir $MODEL_DIR
 
+DATASET=python
+CODE_EXTENSION=original_subtoken
+JAVADOC_EXTENSION=original
+
+
 function train () {
 
 echo "============TRAINING============"
 
 RGPU=$1
-DATASET=python-method
-CODE_EXTENSION=original_subtoken
-JAVADOC_EXTENSION=original
 MODEL_NAME=$2
 
 PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/train.py \
@@ -29,10 +31,10 @@ PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/
 --model_dir $MODEL_DIR \
 --model_name $MODEL_NAME \
 --train_src train/code.${CODE_EXTENSION} \
---train_src_tag train/code.${CODE_EXTENSION}_tag \
+--train_src_tag train/code.${CODE_EXTENSION} \
 --train_tgt train/javadoc.${JAVADOC_EXTENSION} \
 --dev_src dev/code.${CODE_EXTENSION} \
---dev_src_tag dev/code.${CODE_EXTENSION}_tag \
+--dev_src_tag dev/code.${CODE_EXTENSION} \
 --dev_tgt dev/javadoc.${JAVADOC_EXTENSION} \
 --code_tag_type $CODE_EXTENSION \
 --use_code_type False \
@@ -76,9 +78,6 @@ function test () {
 echo "============TESTING============"
 
 RGPU=$1
-DATASET=python-method
-CODE_TAG_TYPE=original_subtoken
-JAVADOC_EXTENSION=original
 MODEL_NAME=$2
 
 PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/train.py \
@@ -88,16 +87,15 @@ PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/
 --data_dir ${DATA_DIR}/ \
 --model_dir $MODEL_DIR \
 --model_name $MODEL_NAME \
---dev_src test/code.${CODE_TAG_TYPE} \
---dev_src_tag test/code.${CODE_TAG_TYPE}_tag \
+--dev_src test/code.${CODE_EXTENSION} \
+--dev_src_tag test/code.${CODE_EXTENSION} \
 --dev_tgt test/javadoc.${JAVADOC_EXTENSION} \
---code_tag_type $CODE_TAG_TYPE \
+--code_tag_type $CODE_EXTENSION \
 --use_code_type False \
 --uncase True \
 --max_src_len 400 \
 --max_tgt_len 30 \
 --max_examples -1 \
---replace_unk \
 --test_batch_size 64
 
 }
@@ -107,9 +105,6 @@ function beam_search () {
 echo "============Beam Search TESTING============"
 
 RGPU=$1
-DATASET=python-method
-CODE_TAG_TYPE=original_subtoken
-JAVADOC_EXTENSION=original
 MODEL_NAME=$2
 
 PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/test.py \
@@ -118,10 +113,10 @@ PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/
 --data_dir ${DATA_DIR}/ \
 --model_dir $MODEL_DIR \
 --model_name $MODEL_NAME \
---dev_src test/code.${CODE_TAG_TYPE} \
---dev_src_tag test/code.${CODE_TAG_TYPE}_tag \
+--dev_src test/code.${CODE_EXTENSION} \
+--dev_src_tag test/code.${CODE_EXTENSION} \
 --dev_tgt test/javadoc.${JAVADOC_EXTENSION} \
---code_tag_type $CODE_TAG_TYPE \
+--code_tag_type $CODE_EXTENSION \
 --use_code_type False \
 --uncase True \
 --max_examples -1 \

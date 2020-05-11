@@ -100,7 +100,7 @@ class Embedder(nn.Module):
                 type_rep = self.type_embeddings(sequence_type)
                 word_rep = word_rep + type_rep
 
-            if self.src_pos_emb and not self.relative_pos:
+            if self.src_pos_emb and self.no_relative_pos:
                 pos_enc = torch.arange(start=0,
                                        end=word_rep.size(1)).type(torch.LongTensor)
                 pos_enc = pos_enc.expand(*word_rep.size()[:-1])

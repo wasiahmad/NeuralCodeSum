@@ -197,11 +197,6 @@ def set_defaults(args):
         args.dev_tgt_files.append(dev_tgt)
         args.dev_src_tag_files.append(dev_src_tag)
 
-    if args.embedding_file:
-        args.embedding_file = os.path.join(args.embed_dir, args.embedding_file)
-        if not os.path.isfile(args.embedding_file):
-            raise IOError('No such file: %s' % args.embedding_file)
-
     # Set model directory
     subprocess.call(['mkdir', '-p', args.model_dir])
 
@@ -255,10 +250,6 @@ def init_from_scratch(args, train_exs, dev_exs):
 
     # Initialize model
     model = Code2NaturalLanguage(config.get_model_args(args), src_dict, tgt_dict)
-
-    # Load pretrained embeddings for words in dictionary
-    if args.embedding_file:
-        pass
 
     return model
 

@@ -469,7 +469,7 @@ def main(args):
 if __name__ == '__main__':
     # Parse cmdline args and setup environment
     parser = argparse.ArgumentParser(
-        'Open Keyphrase Generation',
+        'Code to Natural Language Generation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     add_test_args(parser)
