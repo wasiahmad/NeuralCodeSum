@@ -3,7 +3,7 @@
 - Paper: https://arxiv.org/abs/1707.02275
 - Data source: https://github.com/EdinburghNLP/code-docstring-corpus
 
-Run the `get_data.sh` script inside the `python-method` directory. Once finished, we will see a pretty table summarizing the data statistics.
+Run the `get_data.sh` script inside the `python` directory. Once finished, we will see a pretty table summarizing the data statistics.
 
 ```
 +------------------------+---------+--------+--------+---------+
@@ -26,7 +26,7 @@ Run the `get_data.sh` script inside the `python-method` directory. Once finished
 - Paper: https://xin-xia.github.io/publication/ijcai18.pdf
 - Data source: https://github.com/xing-hu/TL-CodeSum
 
-Run the `get_data.sh` script inside the `tlcodesum` directory. Once finished, we will see a pretty table summarizing the data statistics.
+Run the `get_data.sh` script inside the `java` directory. Once finished, we will see a pretty table summarizing the data statistics.
 
 ```
 +------------------------+---------+---------+---------+----------+
