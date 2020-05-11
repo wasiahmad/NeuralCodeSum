@@ -41,3 +41,7 @@ Run the `get_data.sh` script inside the `tlcodesum` directory. Once finished, we
 | Avg. Javadoc Length    |   17.72 |   17.89 |   17.60 |    17.73 |
 +------------------------+---------+---------+---------+----------+
 ```
+
+### Direct Data Download
+
+You can directly download our experiment dataset from [here](https://drive.google.com/drive/folders/1Mx0xEPZfQzb5h0z753XV-JgoWUuxiuKZ?usp=sharing).
