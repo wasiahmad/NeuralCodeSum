@@ -72,6 +72,19 @@ While training and evaluating the models, a list of files are generated inside a
 }
 ```
 
+#### Generating Summaries for Source Codes
+
+We may want to generate summaries for source codes using a trained model. And this can be done by running [generate.sh](https://github.com/wasiahmad/NeuralCodeSum/blob/master/scripts/generate.sh) script. The input source code file must be under `java` or `python` directory. We need to manually set the value of the [DATASET](https://github.com/wasiahmad/NeuralCodeSum/blob/master/scripts/generate.sh) variable in the bash script. 
+
+A sample Java and Python code file is provided at `[data/java/sample.code]` and `[data/python/sample.code]`.
+
+```
+$ cd scripts
+$ bash generate.sh 0 code2jdoc sample.code
+```
+
+The above command will generate `code2jdoc_beam.json` file inside `tmp` directory which will contain the predicted summaries.
+
 #### Running experiments on CPU/GPU/Multi-GPU
 
 - If GPU_ID is set to -1, CPU will be used.
