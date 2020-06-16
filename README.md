@@ -83,7 +83,7 @@ $ cd scripts
 $ bash generate.sh 0 code2jdoc sample.code
 ```
 
-The above command will generate `code2jdoc_beam.json` file inside `tmp` directory which will contain the predicted summaries.
+The above command will generate `tmp/code2jdoc_beam.json` file that will contain the predicted summaries.
 
 #### Running experiments on CPU/GPU/Multi-GPU
 
