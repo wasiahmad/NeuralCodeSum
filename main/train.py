@@ -83,7 +83,7 @@ def add_train_args(parser):
                        help='Preprocessed train target file')
     files.add_argument('--dev_src', nargs='+', type=str, required=True,
                        help='Preprocessed dev source file')
-    files.add_argument('--dev_src_tag', nargs='+', type=str, required=True,
+    files.add_argument('--dev_src_tag', nargs='+', type=str,
                        help='Preprocessed dev source tag file')
     files.add_argument('--dev_tgt', nargs='+', type=str, required=True,
                        help='Preprocessed dev target file')
@@ -343,7 +343,6 @@ def validate_official(args, data_loader, model, global_stats, mode='dev'):
                                                                    filename=args.pred_file,
                                                                    print_copy_info=args.print_copy_info,
                                                                    mode=mode)
-
     result = dict()
     result['bleu'] = bleu
     result['rouge_l'] = rouge_l

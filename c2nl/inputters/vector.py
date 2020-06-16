@@ -1,63 +1,57 @@
-# src: https://github.com/facebookresearch/DrQA/blob/master/drqa/reader/vector.py
-
 import torch
 
 
 def vectorize(ex, model):
-    """Torchify a single example."""
+    """Vectorize a single example."""
     src_dict = model.src_dict
     tgt_dict = model.tgt_dict
 
     code, summary = ex['code'], ex['summary']
+    vectorized_ex = dict()
+    vectorized_ex['id'] = code.id
+    vectorized_ex['language'] = code.language
 
-    code_char_rep = None
-    summ_char_rep = None
-    code_type_rep = None
-    code_mask_rep = None
+    vectorized_ex['code'] = code.text
+    vectorized_ex['code_tokens'] = code.tokens
+    vectorized_ex['code_char_rep'] = None
+    vectorized_ex['code_type_rep'] = None
+    vectorized_ex['code_mask_rep'] = None
+    vectorized_ex['use_code_mask'] = False
 
-    # Index words
-    code_word_rep = torch.LongTensor(code.vectorize(word_dict=src_dict))
-    summ_word_rep = torch.LongTensor(summary.vectorize(word_dict=tgt_dict))
-
-    # Index chars
+    vectorized_ex['code_word_rep'] = torch.LongTensor(code.vectorize(word_dict=src_dict))
     if model.args.use_src_char:
-        code_char_rep = torch.LongTensor(code.vectorize(word_dict=src_dict, _type='char'))
-    if model.args.use_tgt_char:
-        summ_char_rep = torch.LongTensor(summary.vectorize(word_dict=tgt_dict, _type='char'))
-
+        vectorized_ex['code_char_rep'] = torch.LongTensor(code.vectorize(word_dict=src_dict, _type='char'))
     if model.args.use_code_type:
-        assert len(code.type) == len(code.tokens)
-        code_type_rep = torch.LongTensor(code.type)
-
+        vectorized_ex['code_type_rep'] = torch.LongTensor(code.type)
     if code.mask:
-        code_mask_rep = torch.LongTensor(code.mask)
+        vectorized_ex['code_mask_rep'] = torch.LongTensor(code.mask)
+        vectorized_ex['use_code_mask'] = True
 
-    # target is only used to compute loss during training
-    target = torch.LongTensor(summary.vectorize(tgt_dict))
+    vectorized_ex['summ'] = None
+    vectorized_ex['summ_tokens'] = None
+    vectorized_ex['stype'] = None
+    vectorized_ex['summ_word_rep'] = None
+    vectorized_ex['summ_char_rep'] = None
+    vectorized_ex['target'] = None
 
-    return {
-        'id': code.id,
-        'language': code.language,
-        'code_word_rep': code_word_rep,
-        'code_char_rep': code_char_rep,
-        'code_type_rep': code_type_rep,
-        'code_mask_rep': code_mask_rep,
-        'summ_word_rep': summ_word_rep,
-        'summ_char_rep': summ_char_rep,
-        'target': target,
-        'code': code.text,
-        'code_tokens': code.tokens,
-        'summ': summary.text,
-        'summ_tokens': summary.tokens,
-        'src_vocab': code.src_vocab,
-        'use_src_word': model.args.use_src_word,
-        'use_tgt_word': model.args.use_tgt_word,
-        'use_src_char': model.args.use_src_char,
-        'use_tgt_char': model.args.use_tgt_char,
-        'use_code_type': model.args.use_code_type,
-        'use_code_mask': code_mask_rep is not None,
-        'stype': summary.type
-    }
+    if summary is not None:
+        vectorized_ex['summ'] = summary.text
+        vectorized_ex['summ_tokens'] = summary.tokens
+        vectorized_ex['stype'] = summary.type
+        vectorized_ex['summ_word_rep'] = torch.LongTensor(summary.vectorize(word_dict=tgt_dict))
+        if model.args.use_tgt_char:
+            vectorized_ex['summ_char_rep'] = torch.LongTensor(summary.vectorize(word_dict=tgt_dict, _type='char'))
+        # target is only used to compute loss during training
+        vectorized_ex['target'] = torch.LongTensor(summary.vectorize(tgt_dict))
+
+    vectorized_ex['src_vocab'] = code.src_vocab
+    vectorized_ex['use_src_word'] = model.args.use_src_word
+    vectorized_ex['use_tgt_word'] = model.args.use_tgt_word
+    vectorized_ex['use_src_char'] = model.args.use_src_char
+    vectorized_ex['use_tgt_char'] = model.args.use_tgt_char
+    vectorized_ex['use_code_type'] = model.args.use_code_type
+
+    return vectorized_ex
 
 
 def batchify(batch):
@@ -80,19 +74,22 @@ def batchify(batch):
     code_type = [ex['code_type_rep'] for ex in batch]
     code_mask = [ex['code_mask_rep'] for ex in batch]
     max_code_len = max([d.size(0) for d in code_words])
+    if use_src_char:
+        max_char_in_code_token = code_chars[0].size(1)
 
     # Batch Code Representations
-    code_len_rep = torch.LongTensor(batch_size).zero_()
-    code_word_rep = torch.LongTensor(batch_size,
-                                     max_code_len).zero_() if use_src_word else None
-    code_type_rep = torch.LongTensor(batch_size,
-                                     max_code_len).zero_() if use_code_type else None
-    code_mask_rep = torch.LongTensor(batch_size,
-                                     max_code_len).zero_() if use_code_mask else None
-    code_char_rep = torch.LongTensor(batch_size,
-                                     max_code_len,
-                                     code_chars[0].size(1)).zero_() if use_src_char else None
+    code_len_rep = torch.zeros(batch_size, dtype=torch.long)
+    code_word_rep = torch.zeros(batch_size, max_code_len, dtype=torch.long) \
+        if use_src_word else None
+    code_type_rep = torch.zeros(batch_size, max_code_len, dtype=torch.long) \
+        if use_code_type else None
+    code_mask_rep = torch.zeros(batch_size, max_code_len, dtype=torch.long) \
+        if use_code_mask else None
+    code_char_rep = torch.zeros(batch_size, max_code_len, max_char_in_code_token, dtype=torch.long) \
+        if use_src_char else None
 
+    source_maps = []
+    src_vocabs = []
     for i in range(batch_size):
         code_len_rep[i] = code_words[i].size(0)
         if use_src_word:
@@ -103,49 +100,50 @@ def batchify(batch):
             code_mask_rep[i, :code_mask[i].size(0)].copy_(code_mask[i])
         if use_src_char:
             code_char_rep[i, :code_chars[i].size(0), :].copy_(code_chars[i])
-
-    # --------- Prepare Summary tensors ---------
-    summ_words = [ex['summ_word_rep'] for ex in batch]
-    summ_chars = [ex['summ_char_rep'] for ex in batch]
-    max_sum_len = max([q.size(0) for q in summ_words])
-
-    # Batch Summaries
-    summ_len_rep = torch.LongTensor(batch_size).zero_()
-    summ_word_rep = torch.LongTensor(batch_size,
-                                     max_sum_len).zero_() if use_tgt_word else None
-    summ_char_rep = torch.LongTensor(batch_size,
-                                     max_sum_len,
-                                     summ_chars[0].size(1)).zero_() if use_tgt_char else None
-    for i in range(batch_size):
-        summ_len_rep[i] = summ_words[i].size(0)
-        if use_tgt_word:
-            summ_word_rep[i, :summ_words[i].size(0)].copy_(summ_words[i])
-        if use_tgt_char:
-            summ_char_rep[i, :summ_chars[i].size(0), :].copy_(summ_chars[i])
-
-    # --------- Prepare other tensors ---------
-    targets = [ex['target'] for ex in batch]
-    max_tgt_length = max([t.size(0) for t in targets])
-    tgt_tensor = torch.LongTensor(batch_size, max_tgt_length).zero_()
-    for i, a in enumerate(targets):
-        tgt_tensor[i, :a.size(0)].copy_(targets[i])
-
-    # Prepare source vocabs, alignment [required for Copy Attention]
-    source_maps = []
-    alignments = []
-    src_vocabs = []
-    for j in range(batch_size):
-        target = batch[j]['summ_tokens']
-        context = batch[j]['code_tokens']
-        vocab = batch[j]['src_vocab']
+        #
+        context = batch[i]['code_tokens']
+        vocab = batch[i]['src_vocab']
         src_vocabs.append(vocab)
-
         # Mapping source tokens to indices in the dynamic dict.
         src_map = torch.LongTensor([vocab[w] for w in context])
         source_maps.append(src_map)
 
-        mask = torch.LongTensor([vocab[w] for w in target])
-        alignments.append(mask)
+    # --------- Prepare Summary tensors ---------
+    no_summary = batch[0]['summ_word_rep'] is None
+    if no_summary:
+        summ_len_rep = None
+        summ_word_rep = None
+        summ_char_rep = None
+        tgt_tensor = None
+        alignments = None
+    else:
+        summ_words = [ex['summ_word_rep'] for ex in batch]
+        summ_chars = [ex['summ_char_rep'] for ex in batch]
+        max_sum_len = max([q.size(0) for q in summ_words])
+        if use_tgt_char:
+            max_char_in_summ_token = summ_chars[0].size(1)
+
+        summ_len_rep = torch.zeros(batch_size, dtype=torch.long)
+        summ_word_rep = torch.zeros(batch_size, max_sum_len, dtype=torch.long) \
+            if use_tgt_word else None
+        summ_char_rep = torch.zeros(batch_size, max_sum_len, max_char_in_summ_token, dtype=torch.long) \
+            if use_tgt_char else None
+
+        max_tgt_length = max([ex['target'].size(0) for ex in batch])
+        tgt_tensor = torch.zeros(batch_size, max_tgt_length, dtype=torch.long)
+        alignments = []
+        for i in range(batch_size):
+            summ_len_rep[i] = summ_words[i].size(0)
+            if use_tgt_word:
+                summ_word_rep[i, :summ_words[i].size(0)].copy_(summ_words[i])
+            if use_tgt_char:
+                summ_char_rep[i, :summ_chars[i].size(0), :].copy_(summ_chars[i])
+            #
+            tgt_len = batch[i]['target'].size(0)
+            tgt_tensor[i, :tgt_len].copy_(batch[i]['target'])
+            target = batch[i]['summ_tokens']
+            align_mask = torch.LongTensor([src_vocabs[i][w] for w in target])
+            alignments.append(align_mask)
 
     return {
         'ids': ids,

@@ -57,7 +57,7 @@ def add_test_args(parser):
 
     # Files
     files = parser.add_argument_group('Filesystem')
-    files.add_argument('--dataset_name', nargs='+', type=str, default='methodcom',
+    files.add_argument('--dataset_name', nargs='+', type=str, required=True,
                        help='Name of the experimental dataset')
     files.add_argument('--model_dir', type=str, default='/tmp/qa_models/',
                        help='Directory for saved models/checkpoints/logs')
@@ -67,9 +67,9 @@ def add_test_args(parser):
                        help='Directory of training/validation data')
     files.add_argument('--dev_src', nargs='+', type=str, required=True,
                        help='Preprocessed dev source file')
-    files.add_argument('--dev_src_tag', nargs='+', type=str, required=True,
+    files.add_argument('--dev_src_tag', nargs='+', type=str,
                        help='Preprocessed dev source tag file')
-    files.add_argument('--dev_tgt', nargs='+', type=str, required=True,
+    files.add_argument('--dev_tgt', nargs='+', type=str,
                        help='Preprocessed dev target file')
 
     # Data preprocessing
@@ -85,6 +85,8 @@ def add_test_args(parser):
     general = parser.add_argument_group('General')
     general.add_argument('--sort_by_len', type='bool', default=True,
                          help='Sort batches by length for speed')
+    general.add_argument('--only_generate', type='bool', default=False,
+                         help='Only generate code summaries')
 
     # Beam Search
     bsearch = parser.add_argument_group('Beam Search arguments')
@@ -145,11 +147,14 @@ def set_defaults(args):
         dataset_name = args.dataset_name[i]
         data_dir = os.path.join(args.data_dir, dataset_name)
         dev_src = os.path.join(data_dir, args.dev_src[i])
-        dev_tgt = os.path.join(data_dir, args.dev_tgt[i])
         if not os.path.isfile(dev_src):
             raise IOError('No such file: %s' % dev_src)
-        if not os.path.isfile(dev_tgt):
-            raise IOError('No such file: %s' % dev_tgt)
+        if args.only_generate:
+            dev_tgt = None
+        else:
+            dev_tgt = os.path.join(data_dir, args.dev_tgt[i])
+            if not os.path.isfile(dev_tgt):
+                raise IOError('No such file: %s' % dev_tgt)
         if args.use_code_type:
             dev_src_tag = os.path.join(data_dir, args.dev_src_tag[i])
             if not os.path.isfile(dev_src_tag):
@@ -211,12 +216,7 @@ def prepare_batch(batch, model):
         source_map = make_src_map(batch['src_map'])
         source_map = source_map.cuda(non_blocking=True) if args.cuda \
             else source_map
-        if batch['alignment'][0] is not None:
-            alignment = align(batch['alignment'])
-            alignment = alignment.cuda(non_blocking=True) if args.cuda \
-                else alignment
-        else:
-            alignment = None
+        alignment = None
         blank, fill = collapse_copy_scores(model.tgt_dict, batch['src_vocab'])
     else:
         source_map, alignment = None, None
@@ -298,27 +298,32 @@ def validate_official(args, data_loader, model):
                            else hyp for hyp in hypotheses[eid]]
         references[eid] = trans.targets
 
-    bleu, rouge_l, meteor, precision, recall, f1, ind_bleu, ind_rouge = \
-        eval_accuracies(hypotheses, references)
-    logger.info('beam evaluation official: '
-                'bleu = %.2f | rouge_l = %.2f | meteor = %.2f | ' %
-                (bleu, rouge_l, meteor) +
-                'Precision = %.2f | Recall = %.2f | F1 = %.2f | '
-                'examples = %d | ' %
-                (precision, recall, f1, examples) +
-                'test time = %.2f (s)' % eval_time.time())
+    if args.only_generate:
+        with open(args.pred_file, 'w') as fw:
+            json.dump(hypotheses, fw, indent=4)
 
-    with open(args.pred_file, 'w') as fw:
-        for eid, translation in trans_dict.items():
-            out_dict = OrderedDict()
-            out_dict['id'] = eid
-            out_dict['code'] = sources[eid]
-            # printing all beam search predictions
-            out_dict['predictions'] = [' '.join(pred) for pred in translation.pred_sents]
-            out_dict['references'] = references[eid]
-            out_dict['bleu'] = ind_bleu[eid]
-            out_dict['rouge_l'] = ind_rouge[eid]
-            fw.write(json.dumps(out_dict) + '\n')
+    else:
+        bleu, rouge_l, meteor, precision, recall, f1, ind_bleu, ind_rouge = \
+            eval_accuracies(hypotheses, references)
+        logger.info('beam evaluation official: '
+                    'bleu = %.2f | rouge_l = %.2f | meteor = %.2f | ' %
+                    (bleu, rouge_l, meteor) +
+                    'Precision = %.2f | Recall = %.2f | F1 = %.2f | '
+                    'examples = %d | ' %
+                    (precision, recall, f1, examples) +
+                    'test time = %.2f (s)' % eval_time.time())
+
+        with open(args.pred_file, 'w') as fw:
+            for eid, translation in trans_dict.items():
+                out_dict = OrderedDict()
+                out_dict['id'] = eid
+                out_dict['code'] = sources[eid]
+                # printing all beam search predictions
+                out_dict['predictions'] = [' '.join(pred) for pred in translation.pred_sents]
+                out_dict['references'] = references[eid]
+                out_dict['bleu'] = ind_bleu[eid]
+                out_dict['rouge_l'] = ind_rouge[eid]
+                fw.write(json.dumps(out_dict) + '\n')
 
 
 def eval_accuracies(hypotheses, references):
@@ -360,35 +365,6 @@ def eval_accuracies(hypotheses, references):
 
     return bleu * 100, rouge_l * 100, meteor * 100, precision.avg * 100, \
            recall.avg * 100, f1.avg * 100, ind_bleu, ind_rouge
-
-
-# ------------------------------------------------------------------------------
-# Batchifying examples.
-# ------------------------------------------------------------------------------
-
-def get_batches(examples, bsz, shuffle=True):
-    lengths = [len(ex.document) for ex in examples]
-    clusters = dict()
-    for i, num_pass in enumerate(lengths):
-        if num_pass in clusters:
-            clusters[num_pass].append(i)
-        else:
-            clusters[num_pass] = [i]
-
-    batches = []
-    for key, indices in clusters.items():
-        if shuffle:
-            np.random.shuffle(indices)
-
-        for i, idx in enumerate(indices):
-            if i % bsz == 0:
-                batches.append([examples[idx]])
-            else:
-                batches[len(batches) - 1].append(examples[idx])
-
-    if shuffle:
-        np.random.shuffle(batches)
-    return batches
 
 
 # ------------------------------------------------------------------------------
@@ -439,12 +415,6 @@ def main(args):
     logger.info('Make data loaders')
     dev_dataset = data.CommentDataset(dev_exs, model)
     dev_sampler = torch.utils.data.sampler.SequentialSampler(dev_dataset)
-    # if args.sort_by_len:
-    #     dev_sampler = data.SortedBatchSampler(dev_dataset.lengths(),
-    #                                           args.test_batch_size,
-    #                                           shuffle=False)
-    # else:
-    #     dev_sampler = torch.utils.data.sampler.SequentialSampler(dev_dataset)
     dev_loader = torch.utils.data.DataLoader(
         dev_dataset,
         batch_size=args.test_batch_size,

@@ -45,16 +45,10 @@ def process_examples(lang_id,
         if len(code_tokens) != len(code_type):
             return None
 
-    summ = target.lower() if uncase else target
-    summ_tokens = summ.split()
-
-    if len(code_tokens) == 0 or len(summ_tokens) == 0:
-        return None
-
     code_tokens = code_tokens[:max_src_len]
     code_type = code_type[:max_src_len]
-    if not test_split:
-        summ_tokens = summ_tokens[:max_tgt_len]
+    if not test_split and len(code_tokens) == 0:
+        return None
 
     TAG_TYPE_MAP = TOKEN_TYPE_MAP if \
         code_tag_type == 'subtoken' else AST_TYPE_MAP
@@ -66,11 +60,20 @@ def process_examples(lang_id,
     if code_tag_type != 'subtoken':
         code.mask = [1 if ct == 'N' else 0 for ct in code_type]
 
-    summary = Summary()
-    summary.text = ' '.join(summ_tokens)
-    summary.tokens = summ_tokens
-    summary.prepend_token(BOS_WORD)
-    summary.append_token(EOS_WORD)
+    if target is not None:
+        summ = target.lower() if uncase else target
+        summ_tokens = summ.split()
+        if not test_split:
+            summ_tokens = summ_tokens[:max_tgt_len]
+            if len(summ_tokens) == 0:
+                return None
+        summary = Summary()
+        summary.text = ' '.join(summ_tokens)
+        summary.tokens = summ_tokens
+        summary.prepend_token(BOS_WORD)
+        summary.append_token(EOS_WORD)
+    else:
+        summary = None
 
     example = dict()
     example['code'] = code
@@ -78,7 +81,7 @@ def process_examples(lang_id,
     return example
 
 
-def load_data(args, filenames, max_examples=-1, dataset_name='deepcom',
+def load_data(args, filenames, max_examples=-1, dataset_name='java',
               test_split=False):
     """Load examples from preprocessed file. One example per line, JSON encoded."""
 
@@ -86,9 +89,12 @@ def load_data(args, filenames, max_examples=-1, dataset_name='deepcom',
         sources = [line.strip() for line in
                    tqdm(f, total=count_file_lines(filenames['src']))]
 
-    with open(filenames['tgt']) as f:
-        targets = [line.strip() for line in
-                   tqdm(f, total=count_file_lines(filenames['tgt']))]
+    if filenames['tgt'] is not None:
+        with open(filenames['tgt']) as f:
+            targets = [line.strip() for line in
+                       tqdm(f, total=count_file_lines(filenames['tgt']))]
+    else:
+        targets = [None] * len(sources)
 
     if filenames['src_tag'] is not None:
         with open(filenames['src_tag']) as f:

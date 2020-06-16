@@ -219,11 +219,6 @@ class Code2NaturalLanguage(object):
             source_map = source_map.cuda(non_blocking=True) if self.use_cuda \
                 else source_map
 
-            if ex['alignment'][0][0] is not None:
-                alignment = align(ex['alignment'])
-                alignment = alignment.cuda(non_blocking=True) if self.use_cuda \
-                    else alignment
-
             blank, fill = collapse_copy_scores(self.tgt_dict, ex['src_vocab'])
 
         code_word_rep = ex['code_word_rep']
