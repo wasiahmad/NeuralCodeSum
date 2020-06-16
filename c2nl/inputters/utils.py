@@ -47,7 +47,7 @@ def process_examples(lang_id,
 
     code_tokens = code_tokens[:max_src_len]
     code_type = code_type[:max_src_len]
-    if not test_split and len(code_tokens) == 0:
+    if len(code_tokens) == 0:
         return None
 
     TAG_TYPE_MAP = TOKEN_TYPE_MAP if \
@@ -65,8 +65,8 @@ def process_examples(lang_id,
         summ_tokens = summ.split()
         if not test_split:
             summ_tokens = summ_tokens[:max_tgt_len]
-            if len(summ_tokens) == 0:
-                return None
+        if len(summ_tokens) == 0:
+            return None
         summary = Summary()
         summary.text = ' '.join(summ_tokens)
         summary.tokens = summ_tokens
