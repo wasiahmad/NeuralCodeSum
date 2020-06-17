@@ -74,7 +74,7 @@ While training and evaluating the models, a list of files are generated inside a
 
 #### Generating Summaries for Source Codes
 
-We may want to generate summaries for source codes using a trained model. And this can be done by running [generate.sh](https://github.com/wasiahmad/NeuralCodeSum/blob/master/scripts/generate.sh) script. The input source code file must be under `java` or `python` directory. We need to manually set the value of the [DATASET](https://github.com/wasiahmad/NeuralCodeSum/blob/master/scripts/generate.sh) variable in the bash script. 
+We may want to generate summaries for source codes using a trained model. And this can be done by running [generate.sh](https://github.com/wasiahmad/NeuralCodeSum/blob/master/scripts/generate.sh) script. The input source code file must be under `java` or `python` directory. We need to manually set the value of the [DATASET](https://github.com/wasiahmad/NeuralCodeSum/blob/master/scripts/generate.sh#L15) variable in the bash script. 
 
 A sample Java and Python code file is provided at `[data/java/sample.code]` and `[data/python/sample.code]`.
 
