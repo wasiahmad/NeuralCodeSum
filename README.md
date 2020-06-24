@@ -1,5 +1,5 @@
 ## A Transformer-based Approach for Source Code Summarization
-Official implementation of our ACL 2020 paper on Source Code Summarization. [[arxiv](https://arxiv.org/abs/2005.00653)]
+Official implementation of ACL 2020 paper on Source Code Summarization. [[arxiv](https://arxiv.org/abs/2005.00653)]
 
 ### Installing C2NL
 
