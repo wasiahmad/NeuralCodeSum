@@ -1,6 +1,6 @@
 ## A Transformer-based Approach for Source Code Summarization
-Official implementation of ACL 2020 paper on Source Code Summarization. [[arxiv](https://arxiv.org/abs/2005.00653)]
-
+ Implementation of ACL 2020 paper on Source Code Summarization. [[arxiv](https://arxiv.org/abs/2005.00653)]
+ [[Offical Implementation](https://github.com/wasiahmad/NeuralCodeSum)]
 ### Installing C2NL
 
 You may consider installing the C2NL package. C2NL requires Linux and Python 3.6 or higher. It also requires installing PyTorch version 1.3. Its other dependencies are listed in requirements.txt. CUDA is strongly recommended for speed, but not necessary.
