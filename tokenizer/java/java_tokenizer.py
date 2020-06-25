@@ -18,9 +18,9 @@ def get_java_method_map(tree):
     method_map = []
     for method in tree.types[0].methods:
         if len(method.annotations) > 0:
-            method_map.append([method.annotations[0].position.line, method.position.line])
+            method_map.append([method.annotations[0].position.line, method.position.line, method.annotations[0].position.column])
         else:
-            method_map.append([method.position.line, method.position.line])
+            method_map.append([method.position.line, method.position.line, method.position.column])
 
     return method_map
 
@@ -71,7 +71,6 @@ def process_java_file(java_file_path):
                     break
 
             current_line_no = current_line_no + 1
-        method_text.pop(0)
 
     return method_text
 
@@ -99,9 +98,9 @@ def tokenize_java(java_file_path, save_data):
     method_text = process_java_file(java_file_path)
 
     if save_data:
-        with open(get_project_root() + '/output.code', 'w+') as sample_file:
+        with open(str(get_project_root()) + '/output.code', 'w+') as output_sample_file:
             for line, method in method_text:
-                sample_file.write(method + '\n')
+                output_sample_file.write(method + '\n')
         print('Saving tokenize fine into : %s' % get_project_root() + '/output.code')
     return method_text
 
