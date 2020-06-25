@@ -6,8 +6,14 @@ import torch
 import subprocess
 from nltk.stem import PorterStemmer
 from c2nl.inputters import constants
+from pathlib import Path
 
 ps = PorterStemmer()
+
+
+def get_project_root() -> Path:
+    """Returns project root folder."""
+    return Path(__file__).parent.parent.parent
 
 
 def normalize_string(s, dostem=False):

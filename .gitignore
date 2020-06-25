@@ -2,3 +2,14 @@
 *.pyc
 */__pycache__/*
 c2nl/*/__pycache__/*
+data/java/dev/*
+data/java/test/*
+data/java/train/*
+data/python/dev/*
+data/python/test/*
+data/python/train/*
+tmp/*
+/output.code
+/sample.java
+/scripts/java/output.code
+/scripts/java/sample.java

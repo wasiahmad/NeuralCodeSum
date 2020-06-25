@@ -85,7 +85,7 @@ def add_test_args(parser):
     general = parser.add_argument_group('General')
     general.add_argument('--sort_by_len', type='bool', default=True,
                          help='Sort batches by length for speed')
-    general.add_argument('--only_generate', type='bool', default=False,
+    general.add_argument('--only_generate', type='bool', default=True,
                          help='Only generate code summaries')
 
     # Beam Search
@@ -207,14 +207,14 @@ def build_translator(model, args):
     return translator
 
 
-def prepare_batch(batch, model):
+def prepare_batch(batch, model, cuda):
     # To enable copy attn, collect source map and alignment info
     batch_inputs = dict()
 
     if model.args.copy_attn:
         assert 'src_map' in batch and 'alignment' in batch
         source_map = make_src_map(batch['src_map'])
-        source_map = source_map.cuda(non_blocking=True) if args.cuda \
+        source_map = source_map.cuda(non_blocking=True) if cuda \
             else source_map
         alignment = None
         blank, fill = collapse_copy_scores(model.tgt_dict, batch['src_vocab'])
@@ -232,7 +232,7 @@ def prepare_batch(batch, model):
     code_type_rep = batch['code_type_rep']
     code_mask_rep = batch['code_mask_rep']
     code_len = batch['code_len']
-    if args.cuda:
+    if cuda:
         code_len = batch['code_len'].cuda(non_blocking=True)
         if code_word_rep is not None:
             code_word_rep = code_word_rep.cuda(non_blocking=True)
@@ -275,7 +275,7 @@ def validate_official(args, data_loader, model):
             batch_size = ex['batch_size']
             ids = list(range(batch_no * batch_size,
                              (batch_no * batch_size) + batch_size))
-            batch_inputs = prepare_batch(ex, model)
+            batch_inputs = prepare_batch(ex, model, args.cuda)
 
             ret = translator.translate_batch(batch_inputs)
             targets = [[summ] for summ in ex['summ_text']]
@@ -325,6 +325,8 @@ def validate_official(args, data_loader, model):
                 out_dict['rouge_l'] = ind_rouge[eid]
                 fw.write(json.dumps(out_dict) + '\n')
 
+    return hypotheses;
+
 
 def eval_accuracies(hypotheses, references):
     """An unofficial evalutation helper.
@@ -372,25 +374,27 @@ def eval_accuracies(hypotheses, references):
 # ------------------------------------------------------------------------------
 
 
-def main(args):
+def main(args ,dev_exs):
     # --------------------------------------------------------------------------
     # DATA
     logger.info('-' * 100)
     logger.info('Load and process data files')
-    dev_exs = []
-    for dev_src, dev_src_tag, dev_tgt, dataset_name in \
-            zip(args.dev_src_files, args.dev_src_tag_files,
-                args.dev_tgt_files, args.dataset_name):
-        dev_files = dict()
-        dev_files['src'] = dev_src
-        dev_files['src_tag'] = dev_src_tag
-        dev_files['tgt'] = dev_tgt
-        exs = util.load_data(args,
-                             dev_files,
-                             max_examples=args.max_examples,
-                             dataset_name=dataset_name,
-                             test_split=True)
-        dev_exs.extend(exs)
+    if dev_exs is None:
+        dev_exs = []
+        for dev_src, dev_src_tag, dev_tgt, dataset_name in \
+                zip(args.dev_src_files, args.dev_src_tag_files,
+                    args.dev_tgt_files, args.dataset_name):
+            dev_files = dict()
+            dev_files['src'] = dev_src
+            dev_files['src_tag'] = dev_src_tag
+            dev_files['tgt'] = dev_tgt
+            exs = util.load_data(args,
+                                 dev_files,
+                                 max_examples=args.max_examples,
+                                 dataset_name=dataset_name,
+                                 test_split=True)
+            dev_exs.extend(exs)
+
     logger.info('Num dev examples = %d' % len(dev_exs))
 
     # --------------------------------------------------------------------------
@@ -433,7 +437,7 @@ def main(args):
 
     # --------------------------------------------------------------------------
     # DO TEST
-    validate_official(args, dev_loader, model)
+    return validate_official(args, dev_loader, model)
 
 
 if __name__ == '__main__':
@@ -471,4 +475,4 @@ if __name__ == '__main__':
     logger.info('COMMAND: %s' % ' '.join(sys.argv))
 
     # Run!
-    main(args)
+    main(args,None)

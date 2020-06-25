@@ -24,7 +24,7 @@ Run the `get_data.sh` script inside the `python` directory. Once finished, we wi
 ### Dataset: tlcodesum
 
 - Paper: https://xin-xia.github.io/publication/ijcai18.pdf
-- Data source: https://github.com/xing-hu/TL-CodeSum
+- Data source: or code summarization task
 
 Run the `get_data.sh` script inside the `java` directory. Once finished, we will see a pretty table summarizing the data statistics.
 
