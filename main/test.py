@@ -269,14 +269,17 @@ def validate_official(args, data_loader, model):
     # Run through examples
     examples = 0
     trans_dict, sources = dict(), dict()
+    test_batch_size = data_loader.batch_size
     with torch.no_grad():
         pbar = tqdm(data_loader)
         for batch_no, ex in enumerate(pbar):
             batch_size = ex['batch_size']
-            ids = list(range(batch_no * batch_size,
-                             (batch_no * batch_size) + batch_size))
+            ids = list(range(batch_no * test_batch_size,
+                             (batch_no * test_batch_size) + batch_size))
             batch_inputs = prepare_batch(ex, model, args.cuda)
-
+            print("ids : " + str(ids))
+            print("batch_no : " + str(batch_no))
+            print("batch_size : " + str(batch_size))
             ret = translator.translate_batch(batch_inputs)
             targets = [[summ] for summ in ex['summ_text']]
             translations = builder.from_batch(ret,
