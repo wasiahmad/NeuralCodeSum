@@ -68,6 +68,11 @@ def generate_java_doc_template(file_path, method_hypotheses, method_token_list):
     return java_doc
 
 
+def get_offset(line):
+    first_char_index = len(line) - len(line.lstrip())
+    return line[0:first_char_index]
+
+
 def append_java_doc(file_path, java_doc_temp, method_token_list):
     code_with_doc = []
     with open(file_path, 'r') as java_file:
@@ -75,13 +80,9 @@ def append_java_doc(file_path, java_doc_temp, method_token_list):
         total_method = len(method_token_list)
         current_method_no = 0
         for line in java_file:
-            if current_method_no >= total_method:
-                break
-            if current_line_no == method_token_list[current_method_no][0][0] - 1:
+            if current_method_no < total_method and current_line_no == method_token_list[current_method_no][0][0] - 1:
                 if java_doc_temp[current_method_no] is not None:
-                    offset = ''
-                    for i in list(range(len(line) - len(line.lstrip()))):
-                        offset = offset + " "
+                    offset = get_offset(line)
                     for doc_data in java_doc_temp[current_method_no]:
                         code_with_doc.append(offset + doc_data)
 
@@ -90,7 +91,7 @@ def append_java_doc(file_path, java_doc_temp, method_token_list):
             code_with_doc.append(line)
             current_line_no = current_line_no + 1
 
-    with open(str(get_project_root()) + '/output.java', 'w+') as new_doc_file:
+    with open(str(get_project_root()) + '/output.java', 'w') as new_doc_file:
         new_doc_file.truncate(0)
         for code in code_with_doc:
             new_doc_file.write(code)
