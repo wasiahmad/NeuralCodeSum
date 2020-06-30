@@ -6,9 +6,9 @@ from c2nl.inputters.utils import process_examples
 from main import test
 from c2nl.utils.misc import get_project_root
 import javalang
+import os
 
-
-def convert_to_token(sources):
+def convert_to_token(sources, args):
     examples = []
     lang = "java"
     for index, src in sources:
@@ -61,7 +61,10 @@ def generate_java_doc_template(file_path, method_hypotheses, method_token_list):
             for parameter in method.parameters:
                 current_method_doc.append(' * @param ' + parameter.name + '\n')
 
-            current_method_doc.append(' * @return \n')
+            if(method.return_type == None):
+                current_method_doc.append(' * @return None' + '\n')
+            else:
+                current_method_doc.append(' * @return ' + str(method.return_type.name) + '\n')
             current_method_doc.append('*/\n')
             java_doc.append(current_method_doc)
 
@@ -96,10 +99,9 @@ def append_java_doc(file_path, java_doc_temp, method_token_list):
         for code in code_with_doc:
             new_doc_file.write(code)
 
-
 def main(input_args):
     # Set cuda
-    input_args.cuda = torch.cuda.is_available()
+    input_args.cuda = False
     input_args.parallel = torch.cuda.device_count() > 1
 
     set_args(input_args)
@@ -111,8 +113,56 @@ def main(input_args):
     if args.file_type == 'method':
         method_token_list.append([[0, 0], java_tokenizer.tokenize_java_method(None, args.file_path)])
 
-    dev_exs = convert_to_token(method_token_list)
+    dev_exs = convert_to_token(method_token_list, input_args)
     method_hypotheses = test.main(input_args, dev_exs)
+
+    java_doc_temp = generate_java_doc_template(args.file_path, method_hypotheses, method_token_list)
+
+    append_java_doc(args.file_path, java_doc_temp, method_token_list)
+
+
+def starter(uploadedFile):
+    parser = argparse.ArgumentParser(
+        'Java Code Symmetrization',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    # Adding Java file path argument
+
+    defaultFilePath = os.path.dirname(os.path.realpath(__file__)) + '/uploads/' + uploadedFile
+    parser.add_argument("-p", "--file_path", help="Input file path", default=defaultFilePath, required=False)
+
+    # Adding Java file type argument
+    parser.add_argument("-f", "--file_type", help="File type", default='java', required=False,
+                        choices=['java', 'method'], )
+
+    # Adding Model file path argument
+    defaultModelFilePath = os.path.dirname(os.path.realpath(__file__)) + '/tmp/code2jdoc.mdl'
+    parser.add_argument("-m", "--model_file", help="Model File path", default=defaultModelFilePath, required=False)
+
+    # Adding Output file path argument
+    defaultOutputFilePath = os.path.dirname(os.path.realpath(__file__)) + '/code2jdoc.json'
+    parser.add_argument("-o", "--pred_file", help="Output File path", default=defaultOutputFilePath, required=False)
+
+    # Read arguments from command line
+    args = parser.parse_args()
+
+    # main(args)
+
+    # Set cuda
+    args.cuda = torch.cuda.is_available()
+    args.parallel = torch.cuda.device_count() > 1
+
+    set_args(args)
+
+    method_token_list = []
+    if args.file_type == 'java':
+        method_token_list = java_tokenizer.tokenize_java(args.file_path, True)
+
+    if args.file_type == 'method':
+        method_token_list.append([[0, 0], java_tokenizer.tokenize_java_method(None, args.file_path)])
+
+    dev_exs = convert_to_token(method_token_list,args)
+    method_hypotheses = test.main(args, dev_exs)
 
     java_doc_temp = generate_java_doc_template(args.file_path, method_hypotheses, method_token_list)
 
