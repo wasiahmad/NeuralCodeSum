@@ -70,8 +70,8 @@ PYTHONPATH=$SRC_DIR CUDA_VISIBLE_DEVICES=$RGPU python -W ignore ${SRC_DIR}/main/
 --learning_rate 0.0001 \
 --lr_decay 0.99 \
 --valid_metric bleu \
---checkpoint True
-
+--checkpoint True \
+--split_decoder False
 }
 
 
