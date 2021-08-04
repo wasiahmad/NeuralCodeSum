@@ -270,9 +270,10 @@ class Decoder(nn.Module):
                                             memory_bank,
                                             state[1],
                                             step=step)
-            f_t = self.fusion_sigmoid(torch.cat([copier_out, dec_out], dim=-1))
-            gate_input = torch.cat([copier_out, torch.mul(f_t, dec_out)], dim=-1)
+            f_t = self.fusion_sigmoid(torch.cat([copier_out[-1], dec_out[-1]], dim=-1))
+            gate_input = torch.cat([copier_out[-1], torch.mul(f_t, dec_out[-1])], dim=-1)
             decoder_outputs = self.fusion_gate(gate_input)
+            decoder_outputs = [decoder_outputs]
         else:
             decoder_outputs, attns = self.transformer(tgt_words,
                                                       tgt_emb,
