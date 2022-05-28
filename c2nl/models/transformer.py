@@ -304,7 +304,9 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
 
         self.name = 'Transformer'
-        if len(args.max_relative_pos) != args.nlayers:
+        if isinstance(args.max_relative_pos, int):
+            args.max_relative_pos = [args.max_relative_pos] * args.nlayers
+        elif len(args.max_relative_pos) != args.nlayers:
             assert len(args.max_relative_pos) == 1
             args.max_relative_pos = args.max_relative_pos * args.nlayers
 
